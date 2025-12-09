@@ -1,0 +1,20 @@
+{
+  "name": "examhall-v2",
+  "version": "2.0.0",
+  "description": "Production-ready MERN exam seating arrangement app with JWT authentication",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "cd backend-v2 && npm install && cd ../frontend-v2 && npm install",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend-v2 && npm run dev",
+    "client": "cd frontend-v2 && npm run dev",
+    "start": "cd backend-v2 && npm start",
+    "build": "cd frontend-v2 && npm run build"
+  },
+  "keywords": ["exam", "seating", "mern", "react", "nodejs", "jwt", "authentication"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
