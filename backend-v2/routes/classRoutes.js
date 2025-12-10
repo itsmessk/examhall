@@ -6,7 +6,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 
 /**
  * @route   POST /api/classes/seed
- * @desc    Seed class groups
+ * @desc    Seed class groups - UPDATED for new structure
  * @access  Private (Admin)
  */
 router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
@@ -14,19 +14,36 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
     // Clear existing class groups
     await ClassGroup.deleteMany({});
     
-    const branches = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'];
-    const sections = ['A', 'B'];
-    const year = 3; // Default to 3rd year
-    
+    // UPDATED: New class structure
+    // CSE: 2 sections (A, B) for both years
+    // All others: 1 section (A only) for both years
     const classGroups = [];
     
-    branches.forEach(branch => {
-      sections.forEach(section => {
-        classGroups.push({
-          branch,
-          section,
-          year,
-          displayName: `${branch} ${section} - Year ${year}`
+    // Define departments and their section configuration
+    const deptConfig = [
+      { branch: 'CIVIL', sections: ['A'] },
+      { branch: 'CSE', sections: ['A', 'B'] },  // Only CSE has 2 sections
+      { branch: 'ECE', sections: ['A'] },
+      { branch: 'EEE', sections: ['A'] },
+      { branch: 'IT', sections: ['A'] },
+      { branch: 'MECH', sections: ['A'] }
+    ];
+    
+    const years = [1, 2]; // 1st year and 2nd year
+    
+    deptConfig.forEach(({ branch, sections }) => {
+      years.forEach(year => {
+        sections.forEach(section => {
+          const displayName = sections.length > 1 
+            ? `${branch} ${year}${year === 1 ? 'st' : 'nd'} Year ${section}`
+            : `${branch} ${year}${year === 1 ? 'st' : 'nd'} Year`;
+          
+          classGroups.push({
+            branch,
+            section,
+            year,
+            displayName
+          });
         });
       });
     });

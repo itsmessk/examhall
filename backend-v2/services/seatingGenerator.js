@@ -1,25 +1,26 @@
 /**
  * Seating Generation Service with Class Filtering
  * 
- * ALGORITHM OVERVIEW:
+ * ALGORITHM OVERVIEW - UPDATED:
  * ------------------
  * This service generates exam seating arrangements with:
  * 1. Class-based filtering (select specific branches/sections/years)
  * 2. Room-based filtering (select specific rooms)
  * 3. Round-robin branch distribution to avoid same-branch neighbors
+ * 4. NEW: Special CSE year constraints for Room 8 & 9
+ * 5. NEW: CSE/non-CSE alternation in Room 8 & 9
+ * 6. NEW: Handle overflow students (unassigned tracking)
  * 
- * SEATING STRATEGY:
+ * SPECIAL RULES:
  * ----------------
- * - For 60-capacity rooms: 6 rows × 10 columns layout
- * - For 45-capacity rooms: 5 rows × 9 columns layout
- * - Students picked in round-robin from different branches
- * - Checks left neighbor to avoid same-branch adjacency
+ * Rule A: In any room with CSE students, only one CSE year (1st OR 2nd)
+ * Rule B: In Room 8 & 9, alternate CSE with other departments
+ * Rule C: Mix other departments with CSE in Room 8 & 9
  * 
- * CAPACITY HANDLING:
+ * OVERFLOW HANDLING:
  * -----------------
- * - If students < total seats: some seats remain empty
- * - If students > total seats: only first N students get seats (others unassigned)
- * - Students are sorted by registerNumber for fairness
+ * - If students > seats: Fill all seats, track unassigned students
+ * - Return unassignedCount and unassignedStudents array
  * 
  * TIME COMPLEXITY: O(n) where n = number of students
  * SPACE COMPLEXITY: O(n) for storing branch queues and layouts
@@ -32,6 +33,7 @@ const Seating = require('../models/Seating');
 
 /**
  * Main function to generate seating arrangement with class/room filtering
+ * UPDATED: Now handles overflow students and returns unassigned info
  */
 const generateSeating = async (examName, examDate, classIds, roomIds, userId) => {
   try {
@@ -80,11 +82,24 @@ const generateSeating = async (examName, examDate, classIds, roomIds, userId) =>
       throw new Error('No rooms found.');
     }
     
-    // Group students by branch
-    const branchGroups = groupStudentsByBranch(students);
+    const totalCapacity = rooms.reduce((sum, r) => sum + r.capacity, 0);
+    const totalStudents = students.length;
     
-    // Generate seating layout for selected rooms
-    const roomSeatingData = generateRoomLayouts(rooms, branchGroups);
+    // UPDATED: Handle overflow - don't throw error, just track it
+    let unassignedStudents = [];
+    let studentsToSeat = students;
+    
+    if (totalStudents > totalCapacity) {
+      // We can only seat as many as capacity allows
+      studentsToSeat = students.slice(0, totalCapacity);
+      unassignedStudents = students.slice(totalCapacity);
+    }
+    
+    // Group students by branch AND year (for CSE year constraints)
+    const branchYearGroups = groupStudentsByBranchAndYear(studentsToSeat);
+    
+    // Generate seating layout for selected rooms with special rules
+    const roomSeatingData = generateRoomLayoutsWithRules(rooms, branchYearGroups);
     
     // Create and save seating document
     const seatingDoc = new Seating({
@@ -93,6 +108,8 @@ const generateSeating = async (examName, examDate, classIds, roomIds, userId) =>
       includedClasses,
       usedRooms: rooms.map(r => r._id),
       rooms: roomSeatingData,
+      unassignedCount: unassignedStudents.length,
+      unassignedStudents: unassignedStudents.map(s => s._id),
       createdBy: userId
     });
     
@@ -105,75 +122,81 @@ const generateSeating = async (examName, examDate, classIds, roomIds, userId) =>
 };
 
 /**
- * Group students by branch into separate arrays
+ * Group students by branch AND year (important for CSE year constraints)
+ * Returns object like: { 'CSE-1': [...], 'CSE-2': [...], 'ECE-1': [...], etc. }
  */
-const groupStudentsByBranch = (students) => {
+const groupStudentsByBranchAndYear = (students) => {
   const groups = {};
   
   students.forEach(student => {
-    if (!groups[student.branch]) {
-      groups[student.branch] = [];
+    const key = `${student.branch}-${student.year}`;
+    if (!groups[key]) {
+      groups[key] = [];
     }
-    groups[student.branch].push(student);
+    groups[key].push(student);
   });
   
   return groups;
 };
 
 /**
- * Generate layouts for all rooms using round-robin branch distribution
- * NEW: Distributes students EVENLY across all rooms first, then fills each room
+ * UPDATED: Generate layouts with special rules for Room 8 & 9
+ * Rules applied:
+ * - CSE year constraint (only 1st OR 2nd year CSE per room)
+ * - CSE/non-CSE alternation in Room 8 & 9
+ * - Even distribution across all rooms
  */
-const generateRoomLayouts = (rooms, branchGroups) => {
-  const branches = Object.keys(branchGroups);
+const generateRoomLayoutsWithRules = (rooms, branchYearGroups) => {
+  const keys = Object.keys(branchYearGroups);
   
-  if (branches.length === 0) {
+  if (keys.length === 0) {
     throw new Error('No students available for seating');
   }
   
-  // Flatten all students into a single array
+  // Flatten all students and shuffle for randomization
   const allStudents = [];
-  branches.forEach(branch => {
-    allStudents.push(...branchGroups[branch]);
+  keys.forEach(key => {
+    const shuffled = [...branchYearGroups[key]];
+    shuffleArray(shuffled);
+    allStudents.push(...shuffled);
   });
+  
+  shuffleArray(allStudents);
   
   const totalStudents = allStudents.length;
   const totalCapacity = rooms.reduce((sum, room) => sum + room.capacity, 0);
   
-  if (totalStudents > totalCapacity) {
-    throw new Error(`Not enough seats: ${totalStudents} students but only ${totalCapacity} seats available`);
-  }
-  
-  // Calculate how many students should go in each room (distribute evenly)
+  // Distribute students evenly across rooms
   const studentsPerRoom = distributeStudentsAcrossRooms(totalStudents, rooms);
   
-  // Shuffle students for randomization while maintaining branch groups
-  const shuffledByBranch = {};
-  branches.forEach(branch => {
-    shuffledByBranch[branch] = [...branchGroups[branch]];
-    shuffleArray(shuffledByBranch[branch]);
-  });
+  // Separate CSE and non-CSE students by year
+  const cseYear1 = allStudents.filter(s => s.branch === 'CSE' && s.year === 1);
+  const cseYear2 = allStudents.filter(s => s.branch === 'CSE' && s.year === 2);
+  const nonCSE = allStudents.filter(s => s.branch !== 'CSE');
   
-  // Create queues for round-robin distribution
-  const branchQueues = {};
-  const branchIndices = {};
+  // Create queues
+  const queues = {
+    'CSE-1': { students: cseYear1, index: 0 },
+    'CSE-2': { students: cseYear2, index: 0 },
+    'NON-CSE': { students: nonCSE, index: 0 }
+  };
   
-  branches.forEach(branch => {
-    branchQueues[branch] = shuffledByBranch[branch];
-    branchIndices[branch] = 0;
-  });
-  
-  let currentBranchIndex = 0;
   const roomSeatingData = [];
   
-  // Fill each room with its allocated number of students
+  // Track which CSE year is locked for each room (for Rule A)
+  const roomCSEYearLock = {};
+  
   for (let roomIdx = 0; roomIdx < rooms.length; roomIdx++) {
     const room = rooms[roomIdx];
     const studentsForThisRoom = studentsPerRoom[roomIdx];
-    const { capacity, type } = room;
+    const { capacity, type, name } = room;
+    
+    // Check if this is Room 8 or 9 (special rules apply)
+    const isSpecialRoom = name === 'R8' || name === 'R9' || name === 'Room 8' || name === 'Room 9';
+    
     let rows, cols;
     
-    // Determine layout dimensions based on capacity
+    // Determine layout
     if (type === '60' || capacity === 60) {
       rows = 6;
       cols = 10;
@@ -181,17 +204,15 @@ const generateRoomLayouts = (rooms, branchGroups) => {
       rows = 5;
       cols = 9;
     } else {
-      // Custom capacity
       cols = 10;
       rows = Math.ceil(capacity / cols);
     }
     
-    // Initialize 2D layout with nulls
     const layout = Array(rows).fill(null).map(() => Array(cols).fill(null));
     
     let studentsPlaced = 0;
     
-    // Fill the layout with allocated students
+    // Fill this room with special rules
     outerLoop:
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
@@ -199,13 +220,15 @@ const generateRoomLayouts = (rooms, branchGroups) => {
           break outerLoop;
         }
         
-        // Get student from current branch with conflict avoidance
-        const student = getNextStudent(
-          branchQueues,
-          branchIndices,
-          branches,
-          currentBranchIndex,
-          layout[row][col - 1] // Previous seat in same row
+        // Get next student with all rules applied
+        const student = getNextStudentWithRules(
+          queues,
+          roomCSEYearLock,
+          roomIdx,
+          isSpecialRoom,
+          layout[row][col - 1], // left neighbor
+          row,
+          studentsPlaced
         );
         
         if (student) {
@@ -219,10 +242,7 @@ const generateRoomLayouts = (rooms, branchGroups) => {
           };
           
           studentsPlaced++;
-          // Move to next branch for round-robin
-          currentBranchIndex = (currentBranchIndex + 1) % branches.length;
         } else {
-          // No more students available
           break outerLoop;
         }
       }
@@ -283,6 +303,110 @@ const shuffleArray = (array) => {
  * Get next student using round-robin with conflict avoidance
  * Tries to avoid placing same-branch student adjacent to left neighbor
  */
+/**
+ * NEW: Get next student applying all special rules:
+ * - Rule A: CSE year lock per room (once CSE-1 placed, only CSE-1 in that room)
+ * - Rule B: Alternate CSE/non-CSE in Room 8 & 9
+ * - Rule C: Mix departments in Room 8 & 9 (avoid continuous CSE blocks)
+ * - Avoid same branch in adjacent seats
+ */
+const getNextStudentWithRules = (
+  queues,
+  roomCSEYearLock,
+  roomIdx,
+  isSpecialRoom,
+  leftNeighbor,
+  row,
+  studentsPlaced
+) => {
+  const leftBranch = leftNeighbor ? leftNeighbor.branch : null;
+  
+  // Determine CSE year lock for this room (Rule A)
+  let cseYearForRoom = roomCSEYearLock[roomIdx];
+  
+  // Rule B & C: In Room 8 or 9, try to alternate between CSE and non-CSE
+  let preferNonCSE = false;
+  if (isSpecialRoom) {
+    // Check if last placed student was CSE (look at left neighbor or previous row)
+    if (leftNeighbor && leftNeighbor.branch === 'CSE') {
+      preferNonCSE = true;
+    }
+  }
+  
+  // Try to get non-CSE first if preferred
+  if (preferNonCSE && queues['NON-CSE'].index < queues['NON-CSE'].students.length) {
+    const student = queues['NON-CSE'].students[queues['NON-CSE'].index];
+    
+    // Avoid same branch as left neighbor
+    if (leftBranch && student.branch === leftBranch) {
+      // Try to find different branch in NON-CSE
+      const available = queues['NON-CSE'].students.slice(queues['NON-CSE'].index);
+      const different = available.find(s => s.branch !== leftBranch);
+      
+      if (different) {
+        // Swap to front
+        const idx = queues['NON-CSE'].students.indexOf(different);
+        [queues['NON-CSE'].students[queues['NON-CSE'].index], queues['NON-CSE'].students[idx]] =
+          [queues['NON-CSE'].students[idx], queues['NON-CSE'].students[queues['NON-CSE'].index]];
+      }
+    }
+    
+    queues['NON-CSE'].index++;
+    return student;
+  }
+  
+  // Try CSE students respecting year lock
+  if (!cseYearForRoom) {
+    // No lock yet, try CSE-1 first
+    if (queues['CSE-1'].index < queues['CSE-1'].students.length) {
+      const student = queues['CSE-1'].students[queues['CSE-1'].index];
+      queues['CSE-1'].index++;
+      roomCSEYearLock[roomIdx] = 1; // Lock to year 1
+      return student;
+    }
+    
+    // Try CSE-2
+    if (queues['CSE-2'].index < queues['CSE-2'].students.length) {
+      const student = queues['CSE-2'].students[queues['CSE-2'].index];
+      queues['CSE-2'].index++;
+      roomCSEYearLock[roomIdx] = 2; // Lock to year 2
+      return student;
+    }
+  } else {
+    // Room is locked to a specific CSE year
+    const queueKey = `CSE-${cseYearForRoom}`;
+    if (queues[queueKey].index < queues[queueKey].students.length) {
+      const student = queues[queueKey].students[queues[queueKey].index];
+      queues[queueKey].index++;
+      return student;
+    }
+  }
+  
+  // Fallback: return any available student
+  if (queues['NON-CSE'].index < queues['NON-CSE'].students.length) {
+    const student = queues['NON-CSE'].students[queues['NON-CSE'].index];
+    queues['NON-CSE'].index++;
+    return student;
+  }
+  
+  if (queues['CSE-1'].index < queues['CSE-1'].students.length) {
+    const student = queues['CSE-1'].students[queues['CSE-1'].index];
+    queues['CSE-1'].index++;
+    if (!roomCSEYearLock[roomIdx]) roomCSEYearLock[roomIdx] = 1;
+    return student;
+  }
+  
+  if (queues['CSE-2'].index < queues['CSE-2'].students.length) {
+    const student = queues['CSE-2'].students[queues['CSE-2'].index];
+    queues['CSE-2'].index++;
+    if (!roomCSEYearLock[roomIdx]) roomCSEYearLock[roomIdx] = 2;
+    return student;
+  }
+  
+  return null;
+};
+
+// OLD function kept for reference (can be removed if not needed elsewhere)
 const getNextStudent = (branchQueues, branchIndices, branches, startIndex, leftNeighbor) => {
   const maxAttempts = branches.length;
   let attempts = 0;

@@ -6,7 +6,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 
 /**
  * @route   POST /api/students/seed
- * @desc    Seed database with student data
+ * @desc    Seed database with student data - UPDATED for new structure
  * @access  Private (Admin)
  */
 router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
@@ -14,10 +14,11 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
     // Clear existing students
     await Student.deleteMany({});
     
-    const branches = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'];
-    const sections = ['A', 'B'];
-    const studentsPerSection = 50;
-    const year = 3;
+    // UPDATED: New student structure
+    // CSE: A & B sections for years 1 & 2 (200 students)
+    // Others: A section only for years 1 & 2 (50 students each = 500 students)
+    // Total: 700 students
+    
     const students = [];
     
     // Get all class groups
@@ -29,23 +30,38 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
       classGroupMap[key] = cg._id;
     });
     
-    // Generate student data
-    branches.forEach(branch => {
-      sections.forEach(section => {
-        for (let i = 1; i <= studentsPerSection; i++) {
-          const registerNumber = `${branch}-${section}-${String(i).padStart(3, '0')}`;
-          const name = `Student ${registerNumber}`;
-          const classGroupKey = `${branch}-${section}-${year}`;
-          
-          students.push({
-            registerNumber,
-            name,
-            branch,
-            section,
-            year,
-            classGroup: classGroupMap[classGroupKey] || null
-          });
-        }
+    // Define department configuration
+    const deptConfig = [
+      { branch: 'CIVIL', sections: ['A'] },
+      { branch: 'CSE', sections: ['A', 'B'] },  // Only CSE has 2 sections
+      { branch: 'ECE', sections: ['A'] },
+      { branch: 'EEE', sections: ['A'] },
+      { branch: 'IT', sections: ['A'] },
+      { branch: 'MECH', sections: ['A'] }
+    ];
+    
+    const years = [1, 2];
+    const studentsPerSection = 50;
+    
+    // Generate students for each dept/year/section
+    deptConfig.forEach(({ branch, sections }) => {
+      years.forEach(year => {
+        sections.forEach(section => {
+          for (let i = 1; i <= studentsPerSection; i++) {
+            const registerNumber = `${year}${branch}${section}${String(i).padStart(3, '0')}`;
+            const name = `${branch} ${section} Student ${i}`;
+            const classGroupKey = `${branch}-${section}-${year}`;
+            
+            students.push({
+              registerNumber,
+              name,
+              branch,
+              section,
+              year,
+              classGroup: classGroupMap[classGroupKey] || null
+            });
+          }
+        });
       });
     });
     

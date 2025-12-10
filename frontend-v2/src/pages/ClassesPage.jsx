@@ -25,12 +25,17 @@ const ClassesPage = () => {
     }
   };
 
-  // Group classes by branch
+  // UPDATED: Group classes by branch and year for better display
   const groupedClasses = classes.reduce((acc, cls) => {
-    if (!acc[cls.branch]) {
-      acc[cls.branch] = [];
+    const key = `${cls.branch}-Year${cls.year}`;
+    if (!acc[key]) {
+      acc[key] = {
+        branch: cls.branch,
+        year: cls.year,
+        classes: []
+      };
     }
-    acc[cls.branch].push(cls);
+    acc[key].classes.push(cls);
     return acc;
   }, {});
 
@@ -66,11 +71,11 @@ const ClassesPage = () => {
           </div>
         ) : (
           <div className="classes-grid">
-            {Object.entries(groupedClasses).map(([branch, branchClasses]) => (
-              <div key={branch} className="branch-card">
-                <h2 className="branch-title">{branch}</h2>
+            {Object.entries(groupedClasses).map(([key, group]) => (
+              <div key={key} className="branch-card">
+                <h2 className="branch-title">{group.branch} - Year {group.year}</h2>
                 <div className="class-list">
-                  {branchClasses.map((cls) => (
+                  {group.classes.map((cls) => (
                     <div key={cls._id} className="class-item">
                       <div className="class-info">
                         <h3>Section {cls.section}</h3>

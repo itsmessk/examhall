@@ -102,6 +102,12 @@ const NewSeatingPage = () => {
         selectedRooms
       );
       
+      // UPDATED: Check for overflow students and show warning
+      const { unassignedCount } = response.data;
+      if (unassignedCount && unassignedCount > 0) {
+        alert(`Warning: ${selectedStudentCount} students selected but only ${totalSeats} seats available. ${unassignedCount} students could not be seated.`);
+      }
+      
       // Redirect to view the generated seating
       navigate(`/seating/${response.data._id}`);
     } catch (err) {
@@ -115,12 +121,17 @@ const NewSeatingPage = () => {
     }
   };
 
-  // Group classes by branch
+  // UPDATED: Group classes by branch and year for better organization
   const groupedClasses = classes.reduce((acc, cls) => {
-    if (!acc[cls.branch]) {
-      acc[cls.branch] = [];
+    const key = `${cls.branch}-Year${cls.year}`;
+    if (!acc[key]) {
+      acc[key] = {
+        branch: cls.branch,
+        year: cls.year,
+        classes: []
+      };
     }
-    acc[cls.branch].push(cls);
+    acc[key].classes.push(cls);
     return acc;
   }, {});
 
@@ -202,11 +213,11 @@ const NewSeatingPage = () => {
               <p className="no-data">No classes available. Please initialize system data.</p>
             ) : (
               <div className="classes-selection">
-                {Object.entries(groupedClasses).map(([branch, branchClasses]) => (
-                  <div key={branch} className="branch-group">
-                    <h3 className="branch-label">{branch}</h3>
+                {Object.entries(groupedClasses).map(([key, group]) => (
+                  <div key={key} className="branch-group">
+                    <h3 className="branch-label">{group.branch} - Year {group.year}</h3>
                     <div className="checkbox-grid">
-                      {branchClasses.map(cls => (
+                      {group.classes.map(cls => (
                         <label key={cls._id} className="checkbox-label">
                           <input
                             type="checkbox"
@@ -214,7 +225,7 @@ const NewSeatingPage = () => {
                             onChange={() => handleClassToggle(cls._id)}
                           />
                           <span className="checkbox-text">
-                            {cls.section} ({cls.studentCount} students)
+                            Section {cls.section} ({cls.studentCount} students)
                           </span>
                         </label>
                       ))}
