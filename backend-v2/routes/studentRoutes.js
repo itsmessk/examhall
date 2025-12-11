@@ -14,10 +14,10 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
     // Clear existing students
     await Student.deleteMany({});
     
-    // UPDATED: New student structure
-    // CSE: A & B sections for years 1 & 2 (200 students)
-    // Others: A section only for years 1 & 2 (50 students each = 500 students)
-    // Total: 700 students
+    // UPDATED: New student structure with custom class strengths
+    // FIRST 6 CLASSES (CIVIL + CSE): 80 students each = 480 students
+    // REMAINING 8 CLASSES (ECE, EEE, IT, MECH): 55 students each = 440 students
+    // Total: 920 students
     
     const students = [];
     
@@ -30,21 +30,20 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
       classGroupMap[key] = cg._id;
     });
     
-    // Define department configuration
+    // UPDATED: Define department configuration with custom student counts
     const deptConfig = [
-      { branch: 'CIVIL', sections: ['A'] },
-      { branch: 'CSE', sections: ['A', 'B'] },  // Only CSE has 2 sections
-      { branch: 'ECE', sections: ['A'] },
-      { branch: 'EEE', sections: ['A'] },
-      { branch: 'IT', sections: ['A'] },
-      { branch: 'MECH', sections: ['A'] }
+      { branch: 'CIVIL', sections: ['A'], studentsPerSection: 80 },  // UPDATED: Class size changed to 80
+      { branch: 'CSE', sections: ['A', 'B'], studentsPerSection: 80 },  // UPDATED: Class size changed to 80
+      { branch: 'ECE', sections: ['A'], studentsPerSection: 55 },  // UPDATED: Class size changed to 55
+      { branch: 'EEE', sections: ['A'], studentsPerSection: 55 },  // UPDATED: Class size changed to 55
+      { branch: 'IT', sections: ['A'], studentsPerSection: 55 },  // UPDATED: Class size changed to 55
+      { branch: 'MECH', sections: ['A'], studentsPerSection: 55 }  // UPDATED: Class size changed to 55
     ];
     
     const years = [1, 2];
-    const studentsPerSection = 50;
     
     // Generate students for each dept/year/section
-    deptConfig.forEach(({ branch, sections }) => {
+    deptConfig.forEach(({ branch, sections, studentsPerSection }) => {
       years.forEach(year => {
         sections.forEach(section => {
           for (let i = 1; i <= studentsPerSection; i++) {

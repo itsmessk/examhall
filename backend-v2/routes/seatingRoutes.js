@@ -10,7 +10,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 
 /**
  * @route   POST /api/seating/generate
- * @desc    Generate seating arrangement with class and room filtering
+ * @desc    Generate seating arrangement
  * @access  Private (Admin)
  */
 router.post('/generate', authMiddleware, adminMiddleware, async (req, res) => {
@@ -25,7 +25,7 @@ router.post('/generate', authMiddleware, adminMiddleware, async (req, res) => {
       });
     }
     
-    // Generate seating with optional class and room filters
+    // Generate seating
     const seating = await generateSeating(
       examName,
       new Date(examDate),
@@ -34,9 +34,15 @@ router.post('/generate', authMiddleware, adminMiddleware, async (req, res) => {
       req.user._id
     );
     
+    // Build summary message
+    let message = 'Seating arrangement generated successfully';
+    if (seating.unassignedCount > 0) {
+      message += `. Warning: ${seating.unassignedCount} students could not be assigned (insufficient seats)`;
+    }
+    
     res.status(201).json({
       success: true,
-      message: 'Seating arrangement generated successfully',
+      message,
       data: seating
     });
   } catch (error) {

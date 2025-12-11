@@ -73,7 +73,8 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
  */
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const classGroups = await ClassGroup.find().sort({ branch: 1, section: 1 });
+    // UPDATED: Sort by branch, then year, then section
+    const classGroups = await ClassGroup.find().sort({ branch: 1, year: 1, section: 1 });
     
     // Get student counts for each class
     const classesWithCounts = await Promise.all(

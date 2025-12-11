@@ -15,7 +15,7 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
     
     const rooms = [];
     
-    // Create 6 rooms with 60 capacity (R1-R6)
+    // Create R1-R6 with 60 capacity
     for (let i = 1; i <= 6; i++) {
       rooms.push({
         name: `R${i}`,
@@ -24,8 +24,33 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
       });
     }
     
-    // Create 4 rooms with 45 capacity (R7-R10)
-    for (let i = 7; i <= 10; i++) {
+    // Create R7 with 45 capacity
+    rooms.push({
+      name: 'R7',
+      capacity: 45,
+      type: '45'
+    });
+    
+    // Create R8-R10 with 45 capacity
+    for (let i = 8; i <= 10; i++) {
+      rooms.push({
+        name: `R${i}`,
+        capacity: 45,
+        type: '45'
+      });
+    }
+    
+    // Create R11-R16 with 60 capacity
+    for (let i = 11; i <= 16; i++) {
+      rooms.push({
+        name: `R${i}`,
+        capacity: 60,
+        type: '60'
+      });
+    }
+    
+    // Create R17-R20 with 45 capacity
+    for (let i = 17; i <= 20; i++) {
       rooms.push({
         name: `R${i}`,
         capacity: 45,
@@ -59,7 +84,15 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
  */
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const rooms = await Room.find().sort({ name: 1 });
+    // UPDATED: Natural sorting for R1, R2, ... R10 (not string sort)
+    const rooms = await Room.find().lean();
+    
+    // Custom sort to handle R1-R10 properly
+    rooms.sort((a, b) => {
+      const numA = parseInt(a.name.replace('R', ''));
+      const numB = parseInt(b.name.replace('R', ''));
+      return numA - numB;
+    });
     
     res.json({
       success: true,

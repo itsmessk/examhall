@@ -61,7 +61,7 @@ const SeatingDetailPage = () => {
     );
   }
 
-  const currentRoom = seating.rooms[selectedRoom];
+  const currentRoom = seating.rooms ? seating.rooms[selectedRoom] : null;
 
   return (
     <div className="seating-detail-page">
@@ -74,6 +74,11 @@ const SeatingDetailPage = () => {
             <p className="exam-date">
               Date: {new Date(seating.examDate).toLocaleDateString()}
             </p>
+            {seating.unassignedCount > 0 && (
+              <div className="alert alert-warning" style={{ marginTop: '10px' }}>
+                Warning: {seating.unassignedCount} students could not be assigned due to insufficient capacity
+              </div>
+            )}
           </div>
           <div className="header-actions">
             <button className="btn btn-secondary" onClick={() => navigate('/seating')}>
@@ -98,7 +103,7 @@ const SeatingDetailPage = () => {
             </div>
             <div className="info-item">
               <span className="info-label">Total Rooms:</span>
-              <span className="info-value">{seating.rooms.length}</span>
+              <span className="info-value">{seating.rooms?.length || 0}</span>
             </div>
             <div className="info-item">
               <span className="info-label">Created By:</span>
@@ -121,7 +126,7 @@ const SeatingDetailPage = () => {
         </div>
 
         <div className="room-tabs no-print">
-          {seating.rooms.map((room, idx) => (
+          {seating.rooms && seating.rooms.map((room, idx) => (
             <button
               key={idx}
               className={`room-tab ${selectedRoom === idx ? 'active' : ''}`}

@@ -425,3 +425,59 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* UPDATED: Session selector styles */
+.session-selector {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.session-btn {
+  flex: 1;
+  min-width: 150px;
+  padding: 15px 20px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.session-btn:hover {
+  border-color: #3498db;
+  background-color: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.session-btn.active {
+  border-color: #3498db;
+  background-color: #e3f2fd;
+  font-weight: 600;
+}
+
+.session-number {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.session-info {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.alert-info {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  padding: 15px;
+  border-radius: 4px;
+  color: #1976d2;
+}
+
+.alert-info strong {
+  font-weight: 600;
+}

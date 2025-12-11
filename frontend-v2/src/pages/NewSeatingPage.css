@@ -314,3 +314,66 @@
     width: 100%;
   }
 }
+
+/* UPDATED: Mode selector styles */
+.mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mode-option {
+  display: flex;
+  align-items: flex-start;
+  padding: 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.mode-option:hover {
+  border-color: #3498db;
+  background-color: #f8f9fa;
+}
+
+.mode-option input[type="radio"] {
+  margin-right: 12px;
+  margin-top: 3px;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.mode-option input[type="radio"]:checked + .mode-content {
+  color: #2c3e50;
+}
+
+.mode-option:has(input:checked) {
+  border-color: #3498db;
+  background-color: #e3f2fd;
+}
+
+.mode-content {
+  flex: 1;
+}
+
+.mode-content strong {
+  display: block;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
+.mode-content p {
+  color: #7f8c8d;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.card-description {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+}

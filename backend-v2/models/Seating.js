@@ -35,7 +35,6 @@ const seatingSchema = new mongoose.Schema({
       required: true
     }
   }],
-  // NEW: Track unassigned students when capacity exceeded
   unassignedCount: {
     type: Number,
     default: 0

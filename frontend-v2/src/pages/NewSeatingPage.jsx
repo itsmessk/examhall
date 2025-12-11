@@ -102,10 +102,10 @@ const NewSeatingPage = () => {
         selectedRooms
       );
       
-      // UPDATED: Check for overflow students and show warning
-      const { unassignedCount } = response.data;
-      if (unassignedCount && unassignedCount > 0) {
-        alert(`Warning: ${selectedStudentCount} students selected but only ${totalSeats} seats available. ${unassignedCount} students could not be seated.`);
+      const { data } = response;
+      
+      if (data.unassignedCount && data.unassignedCount > 0) {
+        alert(`Warning: ${data.unassignedCount} students could not be seated due to insufficient capacity.`);
       }
       
       // Redirect to view the generated seating

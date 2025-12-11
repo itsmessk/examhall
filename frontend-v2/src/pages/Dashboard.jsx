@@ -36,6 +36,7 @@ const Dashboard = () => {
       const studentResult = await seedStudents();
       console.log('Students seeded:', studentResult);
 
+      // UPDATED: Show correct counts (14 classes, 10 rooms, 920 students)
       showMessage('success', `Successfully initialized system: ${classResult.count} classes, ${roomResult.count} rooms, ${studentResult.count} students!`);
     } catch (error) {
       console.error('Error seeding data:', error);
