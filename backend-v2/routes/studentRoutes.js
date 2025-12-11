@@ -14,10 +14,8 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
     // Clear existing students
     await Student.deleteMany({});
     
-    // UPDATED: New student structure with custom class strengths
-    // FIRST 6 CLASSES (CIVIL + CSE): 80 students each = 480 students
-    // REMAINING 8 CLASSES (ECE, EEE, IT, MECH): 55 students each = 440 students
-    // Total: 920 students
+    // All classes have 50 students each
+    // 14 classes × 50 students = 700 total students
     
     const students = [];
     
@@ -30,14 +28,14 @@ router.post('/seed', authMiddleware, adminMiddleware, async (req, res) => {
       classGroupMap[key] = cg._id;
     });
     
-    // UPDATED: Define department configuration with custom student counts
+    // Define department configuration - all classes have 50 students
     const deptConfig = [
-      { branch: 'CIVIL', sections: ['A'], studentsPerSection: 80 },  // UPDATED: Class size changed to 80
-      { branch: 'CSE', sections: ['A', 'B'], studentsPerSection: 80 },  // UPDATED: Class size changed to 80
-      { branch: 'ECE', sections: ['A'], studentsPerSection: 55 },  // UPDATED: Class size changed to 55
-      { branch: 'EEE', sections: ['A'], studentsPerSection: 55 },  // UPDATED: Class size changed to 55
-      { branch: 'IT', sections: ['A'], studentsPerSection: 55 },  // UPDATED: Class size changed to 55
-      { branch: 'MECH', sections: ['A'], studentsPerSection: 55 }  // UPDATED: Class size changed to 55
+      { branch: 'CIVIL', sections: ['A'], studentsPerSection: 50 },
+      { branch: 'CSE', sections: ['A', 'B'], studentsPerSection: 50 },
+      { branch: 'ECE', sections: ['A'], studentsPerSection: 50 },
+      { branch: 'EEE', sections: ['A'], studentsPerSection: 50 },
+      { branch: 'IT', sections: ['A'], studentsPerSection: 50 },
+      { branch: 'MECH', sections: ['A'], studentsPerSection: 50 }
     ];
     
     const years = [1, 2];
